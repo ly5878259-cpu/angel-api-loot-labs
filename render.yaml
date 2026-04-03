@@ -4,6 +4,6 @@ services:
     env: node
     region: oregon
     branch: main
-    buildCommand: npm install
+    buildCommand: PUPPETEER_SKIP_DOWNLOAD=true npm install
     startCommand: node index.js
     plan: free
