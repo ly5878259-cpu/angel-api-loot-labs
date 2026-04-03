@@ -1,6 +1,6 @@
 const express = require('express');
 const WebSocket = require('ws');
-const puppeteer = require('puppeteer-core');
+const puppeteer = require('puppeteer');
 const axios = require('axios');
 const cheerio = require('cheerio');
 
@@ -25,15 +25,12 @@ function decodeURIData(encodedString, prefixLength = 5) {
 // Puppeteer to extract loot data
 async function getLootData(url) {
     const browser = await puppeteer.launch({
-    headless: "new",
-    args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-blink-features=AutomationControlled',
-        '--disable-infobars'
-    ],
-    executablePath: '/usr/bin/chromium-browser'
-});
+        headless: "new",
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox'
+        ]
+    });
 
     const page = await browser.newPage();
     let loot = null;
@@ -57,14 +54,12 @@ async function getLootData(url) {
 
     await page.setUserAgent(UA);
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
-
     await new Promise(r => setTimeout(r, 8000));
 
     const html = await page.content();
     const $ = cheerio.load(html);
 
     let KEY = null, TID = null;
-
     $('script').each((i, el) => {
         const c = $(el).html();
         if (!c) return;
@@ -113,7 +108,6 @@ app.get('/bypass', async (req, res) => {
         if (!raw) return res.json({ error: "missing url" });
 
         const url = decodeURIComponent(raw);
-
         const data = await getLootData(url);
         const encoded = await resolve(data);
 
@@ -121,7 +115,6 @@ app.get('/bypass', async (req, res) => {
         final = final.replace(/\f/g, '').trim();
 
         await data.browser.close();
-
         res.json({ success: true, result: final });
 
     } catch (e) {
