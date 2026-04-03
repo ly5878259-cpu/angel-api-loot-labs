@@ -1,6 +1,6 @@
 const express = require('express');
 const WebSocket = require('ws');
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-core');
 const axios = require('axios');
 const cheerio = require('cheerio');
 
@@ -9,27 +9,22 @@ app.use(express.json());
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36';
 
-// XOR decode function
 function decodeURIData(encodedString, prefixLength = 5) {
     const base64Decoded = Buffer.from(encodedString, 'base64').toString('binary');
     const prefix = base64Decoded.substring(0, prefixLength);
     const body = base64Decoded.substring(prefixLength);
     let decoded = '';
-
     for (let i = 0; i < body.length; i++) {
         decoded += String.fromCharCode(body.charCodeAt(i) ^ prefix.charCodeAt(i % prefix.length));
     }
     return decoded;
 }
 
-// Puppeteer to extract loot data
 async function getLootData(url) {
     const browser = await puppeteer.launch({
         headless: "new",
-        args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox'
-        ]
+        args: ['--no-sandbox','--disable-setuid-sandbox','--disable-blink-features=AutomationControlled','--disable-infobars'],
+        executablePath: '/usr/bin/chromium-browser'
     });
 
     const page = await browser.newPage();
@@ -42,11 +37,7 @@ async function getLootData(url) {
                 const json = JSON.parse(text);
                 const item = Array.isArray(json) ? json[0] : json;
                 if (item?.urid) {
-                    loot = {
-                        urid: item.urid,
-                        pixel: item.action_pixel_url,
-                        task_id: item.task_id || 8
-                    };
+                    loot = { urid: item.urid, pixel: item.action_pixel_url, task_id: item.task_id || 8 };
                 }
             }
         } catch {}
@@ -63,10 +54,8 @@ async function getLootData(url) {
     $('script').each((i, el) => {
         const c = $(el).html();
         if (!c) return;
-
         const k = c.match(/KEY'\]\s*=\s*["'](\d+)["']/);
         const t = c.match(/TID'\]\s*=\s*(\d+)/);
-
         if (k) KEY = k[1];
         if (t) TID = t[1];
     });
@@ -79,29 +68,17 @@ async function getLootData(url) {
     return { ...loot, KEY, TID, browser };
 }
 
-// WebSocket resolver
 async function resolve(data) {
     const host = `0.${data.SERVER || 'onsultingco.com'}`;
     const ws = new WebSocket(`wss://${host}/c?uid=${data.urid}&cat=${data.task_id}&key=${data.KEY}`);
-
     return new Promise((resolve, reject) => {
         let result = "";
-
-        ws.on('message', (msg) => {
-            const m = msg.toString();
-            if (m.startsWith('r:')) result = m.replace('r:', '');
-        });
-
-        ws.on('close', () => {
-            if (result) resolve(result);
-            else reject("no result");
-        });
-
+        ws.on('message', (msg) => { const m = msg.toString(); if (m.startsWith('r:')) result = m.replace('r:', ''); });
+        ws.on('close', () => { if (result) resolve(result); else reject("no result"); });
         ws.on('error', reject);
     });
 }
 
-// API route
 app.get('/bypass', async (req, res) => {
     try {
         const raw = req.originalUrl.split('?url=')[1];
@@ -113,15 +90,13 @@ app.get('/bypass', async (req, res) => {
 
         let final = decodeURIComponent(decodeURIData(encoded));
         final = final.replace(/\f/g, '').trim();
-
         await data.browser.close();
-        res.json({ success: true, result: final });
 
+        res.json({ success: true, result: final });
     } catch (e) {
         res.json({ success: false, error: e.toString() });
     }
 });
 
-// Port
 const PORT = process.env.PORT || 3100;
 app.listen(PORT, () => console.log("Server running on port " + PORT));
