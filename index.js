@@ -25,13 +25,15 @@ function decodeURIData(encodedString, prefixLength = 5) {
 // Puppeteer to extract loot data
 async function getLootData(url) {
     const browser = await puppeteer.launch({
-        headless: "new",
-        args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage'
-        ]
-    });
+    headless: "new",
+    args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-blink-features=AutomationControlled',
+        '--disable-infobars'
+    ],
+    executablePath: '/usr/bin/chromium-browser'
+});
 
     const page = await browser.newPage();
     let loot = null;
