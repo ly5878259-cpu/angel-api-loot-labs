@@ -22,10 +22,12 @@ function decodeURIData(encodedString, prefixLength = 5) {
 
 async function getLootData(url) {
     const browser = await puppeteer.launch({
-        headless: "new",
-        args: ['--no-sandbox','--disable-setuid-sandbox','--disable-blink-features=AutomationControlled','--disable-infobars'],
-        executablePath: '/usr/bin/chromium-browser'
-    });
+    headless: "new",
+    args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox'
+    ]
+});
 
     const page = await browser.newPage();
     let loot = null;
