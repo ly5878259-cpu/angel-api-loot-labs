@@ -4,6 +4,9 @@ services:
     env: node
     region: oregon
     branch: main
-    buildCommand: npm install
+    buildCommand: apt-get update && apt-get install -y chromium-browser && PUPPETEER_SKIP_DOWNLOAD=true npm install
     startCommand: node index.js
+    envVars:
+      - key: PUPPETEER_SKIP_DOWNLOAD
+        value: "true"
     plan: free
